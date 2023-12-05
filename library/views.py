@@ -2,12 +2,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Student, Book, BookIssue
 from .forms import StudentRegistrationForm, BookRegistrationForm
-from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .serializers import BookSerializer
-# import .serializers import BookSerializer
+from .serializers import BookSerializer, BookIssueSerializer
 
 @csrf_exempt
 def admin_login(request):
@@ -75,17 +72,54 @@ def issue_book(request):
 
     return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
 
-
-
 def get_all_books(request):
     books = Book.objects.all()
     serialized_books = BookSerializer(books, many=True)
     return JsonResponse({'success': True, 'books': serialized_books.data})
 
-def get_book(request, book_id):
+@login_required
+@csrf_exempt
+def update_book(request, book_id):
     try:
         book = Book.objects.get(id=book_id)
-        serializer_book = BookSerializer(book)
-        return JsonResponse({'success': True, 'book': serializer_book.data})
+        if request.method == 'POST':
+            for field,value in request.POST.items():
+                if hasattr(book, field):
+                    setattr(book, field, value)
+            book.save()
+            return JsonResponse({'success': True, 'message': 'Book updated successfully'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
     except Book.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'Book does not exist'}, status=404)
+
+@login_required 
+def book(request, book_id):
+    if request.method == 'GET':
+        try:
+            book = Book.objects.get(id=book_id)
+            serializer_book = BookSerializer(book)
+            return JsonResponse({'success': True, 'book': serializer_book.data})
+        except Book.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Book does not exist'}, status=404)
+    elif request.method == 'DELETE':
+        try:
+            book = Book.objects.get(id=book_id)
+            book.delete()
+            return JsonResponse({'success': True, 'message': 'Book deleted successfully'})
+        except Book.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Book does not exist'}, status=404)
+
+def get_student_books(request, student_id):
+    try:
+        student = Student.objects.get(id=student_id)
+        book_issues = BookIssue.objects.filter(student=student)
+        serialized_book_issues = BookIssueSerializer(book_issues, many=True)
+        return JsonResponse({'success': True, 'book_issues': serialized_book_issues.data})
+    except Student.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Student does not exist'}, status=404)
+    
+def get_all_book_issues(request):
+    book_issues = BookIssue.objects.all()
+    serialized_book_issues = BookIssueSerializer(book_issues, many=True)
+    return JsonResponse({'success': True, 'book_issues': serialized_book_issues.data})
