@@ -4,7 +4,7 @@ from .models import Student, Book, BookIssue
 from .forms import StudentRegistrationForm, BookRegistrationForm
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
-from .serializers import BookSerializer, BookIssueSerializer
+from .serializers import BookSerializer, BookIssueSerializer, StudentSerializer
 
 @csrf_exempt
 def admin_login(request):
@@ -31,6 +31,12 @@ def register_student(request):
             return JsonResponse({'success': False, 'errors': errors}, status=400)
 
     return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
+
+@login_required
+def get_students(request):
+    students = Student.objects.all()
+    serialized_students = StudentSerializer(students, many=True)
+    return JsonResponse({'success': True, 'students': serialized_students.data})
 
 @csrf_exempt
 def add_book(request):
