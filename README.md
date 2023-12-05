@@ -103,4 +103,3 @@ Follow these steps to set up and run the inventory management system locally.
     ```
 
 Visit [http://localhost:8000/](http://localhost:8000/) in your browser to access the application.
-``` 
